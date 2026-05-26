@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapEventRow, mapNoteRow, mapPersonRow } from "./repository";
+import { mapEventRow, mapNoteRow, mapPersonRow, mapUnlockTimelineResponse } from "./repository";
 
 describe("repository row mappers", () => {
   it("maps Supabase people rows into app people", () => {
@@ -68,5 +68,72 @@ describe("repository row mappers", () => {
       verseRef: "John 1:16",
       verseText: "Grace upon grace.",
     });
+  });
+});
+
+describe("mapUnlockTimelineResponse", () => {
+  it("maps the public unlock RPC payload into a sorted timeline", () => {
+    const person = {
+      aliases: ["MARK26"],
+      code_display: "K7M2Q",
+      code_hash: "K7M2Q",
+      created_at: "2026-05-26T00:00:00.000Z",
+      display_name: "Mark",
+      id: "person-id",
+    };
+    const olderEvent = {
+      created_at: "2026-05-26T00:00:00.000Z",
+      date_label: "June 2025",
+      default_visible_from: null,
+      event_date: "2025-06-01",
+      id: "older-event",
+      name: "LifeGen Camp",
+      slug: "lifegen-camp-2025",
+      theme: "gold" as const,
+      year: 2025,
+    };
+    const newerEvent = {
+      ...olderEvent,
+      date_label: "June 2026",
+      event_date: "2026-06-01",
+      id: "newer-event",
+      slug: "lifegen-camp-2026",
+      theme: "teal" as const,
+      year: 2026,
+    };
+
+    expect(
+      mapUnlockTimelineResponse({
+        person,
+        items: [
+          {
+            event: olderEvent,
+            note: {
+              created_at: "2026-05-26T00:00:00.000Z",
+              event_id: "older-event",
+              id: "older-note",
+              message: "Older.",
+              person_id: "person-id",
+              updated_at: "2026-05-26T00:00:00.000Z",
+              verse_ref: "",
+              verse_text: "",
+            },
+          },
+          {
+            event: newerEvent,
+            note: {
+              created_at: "2026-05-26T00:00:00.000Z",
+              event_id: "newer-event",
+              id: "newer-note",
+              message: "Newer.",
+              person_id: "person-id",
+              updated_at: "2026-05-26T00:00:00.000Z",
+              verse_ref: "",
+              verse_text: "",
+            },
+          },
+        ],
+      })?.items.map((item) => item.note.id),
+    ).toEqual(["newer-note", "older-note"]);
   });
 });

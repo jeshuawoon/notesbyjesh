@@ -1,5 +1,5 @@
 import { generateFriendlyCode, normalizeCode } from "./code";
-import { getSupabaseServerClient } from "./supabase/server";
+import { getSupabasePublicClient, getSupabaseServerClient } from "./supabase/server";
 import { sortNotesForTimeline } from "./timeline";
 import type { Event, Note, Person, StudioSnapshot, ThemePreset, UnlockedTimeline } from "./types";
 
@@ -42,6 +42,14 @@ type SupabaseError = {
 type SupabaseResult<T> = {
   data: T | null;
   error: SupabaseError | null;
+};
+
+type UnlockTimelineRpcResponse = {
+  person: PersonRow;
+  items: Array<{
+    event: EventRow;
+    note: NoteRow;
+  }>;
 };
 
 export async function unlockTimeline(code: string): Promise<UnlockedTimeline | null> {
@@ -132,22 +140,32 @@ export function mapNoteRow(row: NoteRow): Note {
   };
 }
 
-async function unlockSupabaseTimeline(code: string): Promise<UnlockedTimeline | null> {
-  const normalized = normalizeCode(code);
-  const client = getSupabaseServerClient();
-  const result = (await client
-    .from("people")
-    .select("*")
-    .eq("code_hash", normalized)
-    .maybeSingle()) as SupabaseResult<PersonRow>;
-
-  assertSupabaseResult(result);
-
-  if (!result.data) {
+export function mapUnlockTimelineResponse(value: UnlockTimelineRpcResponse | null): UnlockedTimeline | null {
+  if (!value?.person) {
     return null;
   }
 
-  return getSupabaseTimelineForPerson(result.data.id, mapPersonRow(result.data));
+  return {
+    person: mapPersonRow(value.person),
+    items: sortNotesForTimeline(
+      (value.items ?? []).map((item) => ({
+        event: mapEventRow(item.event),
+        note: mapNoteRow(item.note),
+      })),
+    ),
+  };
+}
+
+async function unlockSupabaseTimeline(code: string): Promise<UnlockedTimeline | null> {
+  const normalized = normalizeCode(code);
+  const client = getSupabasePublicClient();
+  const result = (await client.rpc("unlock_timeline", {
+    input_code_hash: normalized,
+  })) as SupabaseResult<UnlockTimelineRpcResponse>;
+
+  assertSupabaseResult(result);
+
+  return mapUnlockTimelineResponse(result.data);
 }
 
 async function getSupabaseTimelineForPerson(
