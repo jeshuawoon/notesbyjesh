@@ -24,3 +24,6 @@ export function getSupabaseServerClient() {
   return cachedClient;
 }
 
+export function isSupabaseServerConfigured(env: NodeJS.ProcessEnv = process.env) {
+  return Boolean(env.NEXT_PUBLIC_SUPABASE_URL && (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY));
+}
