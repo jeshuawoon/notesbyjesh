@@ -60,10 +60,11 @@ export function CodeEntry() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-8 text-left">
+    <main className="relative flex h-[100svh] items-center justify-center overflow-hidden px-6 py-7 text-left">
       <EntryBackground />
-      <section className="relative z-10 flex min-h-[calc(100vh-4rem)] w-full max-w-[360px] flex-col">
-        <div className="flex flex-1 flex-col justify-center">
+      <section className="relative z-10 flex h-full w-full max-w-[360px] flex-col">
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
+          <div className="mx-auto w-full max-w-[320px]">
           <p
             className="font-crimson mb-3 text-[18px] italic leading-none text-[#edf1ee]/54"
             style={{ animation: "fade-up 0.7s ease both" }}
@@ -112,19 +113,20 @@ export function CodeEntry() {
             aria-label="Your code"
             placeholder="Your Code"
             aria-describedby="code-entry-status"
-            className={`code-entry-input mb-3 w-full max-w-[320px] rounded-[8px] border border-[#edf1ee]/18 bg-[#edf1ee]/[0.035] px-5 py-4 text-center text-[22px] tracking-[0.18em] text-[#edf1ee]/92 outline-none transition placeholder:text-[#edf1ee]/28 focus:border-cyan-100/42 focus:bg-[#edf1ee]/[0.055] ${error ? "animate-[shake_0.35s_ease]" : ""}`}
+            className={`code-entry-input mb-3 w-full rounded-[8px] border border-[#edf1ee]/18 bg-[#edf1ee]/[0.035] px-5 py-4 text-center text-[22px] tracking-[0.18em] text-[#edf1ee]/92 outline-none transition placeholder:text-[#edf1ee]/28 focus:border-cyan-100/42 focus:bg-[#edf1ee]/[0.055] ${error ? "animate-[shake_0.35s_ease]" : ""}`}
           />
           <p
             id="code-entry-status"
             aria-live="polite"
-            className="min-h-5 max-w-[320px] text-center text-[12px] leading-5 tracking-wide text-[#edf1ee]/42"
+            className="min-h-5 w-full text-center text-[12px] leading-5 tracking-wide text-[#edf1ee]/42"
           >
             {isPending
               ? "Opening your note..."
               : error || (normalizeCode(code).length > 0 ? `${normalizeCode(code).length}/${FRIENDLY_CODE_LENGTH}` : "")}
           </p>
+          </div>
         </div>
-        <p className="font-crimson border-t border-[#edf1ee]/12 pt-4 text-center text-[16px] italic text-[#edf1ee]/38">
+        <p className="font-crimson shrink-0 border-t border-[#edf1ee]/12 pt-4 text-center text-[16px] italic text-[#edf1ee]/38">
           Notes by Jeshua
         </p>
       </section>

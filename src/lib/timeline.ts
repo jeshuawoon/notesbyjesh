@@ -26,3 +26,22 @@ export function findNextReadableTimelineIndex(items: TimelineItem[], currentInde
 
   return nextIndex === -1 ? null : nextIndex;
 }
+
+export function getNextTimelineUnlockDate(items: TimelineItem[], now = new Date()) {
+  const nowTime = now.getTime();
+  const nextUnlockTime = items.reduce<number | null>((earliest, item) => {
+    if (!item.event.defaultVisibleFrom) {
+      return earliest;
+    }
+
+    const unlockTime = new Date(item.event.defaultVisibleFrom).getTime();
+
+    if (!Number.isFinite(unlockTime) || unlockTime <= nowTime) {
+      return earliest;
+    }
+
+    return earliest === null ? unlockTime : Math.min(earliest, unlockTime);
+  }, null);
+
+  return nextUnlockTime === null ? null : new Date(nextUnlockTime);
+}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { findNextReadableTimelineIndex, isFutureTimelineItem, sortNotesForTimeline } from "./timeline";
+import {
+  findNextReadableTimelineIndex,
+  getNextTimelineUnlockDate,
+  isFutureTimelineItem,
+  sortNotesForTimeline,
+} from "./timeline";
 import type { Event, Note, TimelineItem } from "./types";
 
 const baseNote: Note = {
@@ -103,5 +108,26 @@ describe("findNextReadableTimelineIndex", () => {
     ];
 
     expect(findNextReadableTimelineIndex(items, 0, now)).toBeNull();
+  });
+});
+
+describe("getNextTimelineUnlockDate", () => {
+  it("returns the earliest future unlock date", () => {
+    const now = new Date("2026-05-26T12:00:00.000Z");
+    const items = [
+      timelineItem("one", "2026-05-27T12:00:00.000Z"),
+      timelineItem("two", "2026-05-26T13:00:00.000Z"),
+      timelineItem("three", "2026-05-25T12:00:00.000Z"),
+      timelineItem("four"),
+    ];
+
+    expect(getNextTimelineUnlockDate(items, now)?.toISOString()).toBe("2026-05-26T13:00:00.000Z");
+  });
+
+  it("returns null when no locked note has a future unlock date", () => {
+    const now = new Date("2026-05-26T12:00:00.000Z");
+    const items = [timelineItem("one"), timelineItem("two", "2026-05-26T12:00:00.000Z")];
+
+    expect(getNextTimelineUnlockDate(items, now)).toBeNull();
   });
 });

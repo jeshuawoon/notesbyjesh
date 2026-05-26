@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { ThemePreset, UnlockedTimeline } from "@/lib/types";
-import { findNextReadableTimelineIndex, isFutureTimelineItem } from "@/lib/timeline";
+import { findNextReadableTimelineIndex, getNextTimelineUnlockDate, isFutureTimelineItem } from "@/lib/timeline";
 import { createStarField } from "@/lib/starfield";
 import { CountdownSection } from "./countdown-section";
 import { EventSeparator } from "./event-separator";
@@ -60,8 +60,8 @@ function rgbCss([red, green, blue]: readonly [number, number, number], alpha: nu
 }
 
 export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
-  const now = new Date();
   const footerRef = useRef<HTMLElement | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const [activeTheme, setActiveTheme] = useState<ThemePreset>(timeline.items[0]?.event.theme ?? "teal");
   const [footerStarsActive, setFooterStarsActive] = useState(false);
   const [starTheme, setStarTheme] = useState(() => ({
@@ -69,6 +69,19 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
     text: rgbCss(starThemes[timeline.items[0]?.event.theme ?? "teal"].text, 0.88),
     soft: rgbCss(starThemes[timeline.items[0]?.event.theme ?? "teal"].soft, 0.68),
   }));
+
+  useEffect(() => {
+    const nextUnlockDate = getNextTimelineUnlockDate(timeline.items, now);
+
+    if (!nextUnlockDate) {
+      return;
+    }
+
+    const delay = Math.max(0, nextUnlockDate.getTime() - now.getTime());
+    const timer = window.setTimeout(() => setNow(new Date()), Math.min(delay + 50, 2_147_483_647));
+
+    return () => window.clearTimeout(timer);
+  }, [now, timeline.items]);
 
   useEffect(() => {
     const revealEls = Array.from(document.querySelectorAll<HTMLElement>(".timeline-reveal"));
@@ -98,7 +111,7 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
     revealEls.forEach((element) => observer.observe(element));
 
     return () => observer.disconnect();
-  }, [timeline]);
+  }, [timeline, now]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -167,7 +180,7 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
     };
-  }, [timeline]);
+  }, [timeline, now]);
 
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-timeline-theme]"));
@@ -209,7 +222,7 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
     sections.forEach((section) => observer.observe(section));
 
     return () => observer.disconnect();
-  }, [timeline]);
+  }, [timeline, now]);
 
   useEffect(() => {
     const footer = footerRef.current;
@@ -407,7 +420,7 @@ function TimelineStars({
   return (
     <div
       aria-hidden="true"
-      className="timeline-stars pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="timeline-stars pointer-events-none fixed left-0 top-0 z-0 h-[100lvh] w-screen overflow-hidden"
       data-footer-active={footerActive}
       style={
         {
