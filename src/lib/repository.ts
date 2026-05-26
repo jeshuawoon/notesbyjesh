@@ -1,6 +1,5 @@
 import { generateFriendlyCode, normalizeCode } from "./code";
-import { events, notes, people, snapshot } from "./mock-data";
-import { getSupabaseServerClient, isSupabaseServerConfigured } from "./supabase/server";
+import { getSupabaseServerClient } from "./supabase/server";
 import { sortNotesForTimeline } from "./timeline";
 import type { Event, Note, Person, StudioSnapshot, ThemePreset, UnlockedTimeline } from "./types";
 
@@ -46,81 +45,19 @@ type SupabaseResult<T> = {
 };
 
 export async function unlockTimeline(code: string): Promise<UnlockedTimeline | null> {
-  if (isSupabaseServerConfigured()) {
-    return unlockSupabaseTimeline(code);
-  }
-
-  const normalized = normalizeCode(code);
-  const person = people.find((item) => item.codeHash === normalized);
-
-  if (!person) {
-    return null;
-  }
-
-  return getTimelineForPerson(person.id);
+  return unlockSupabaseTimeline(code);
 }
 
 export async function getTimelineForPerson(personId: string): Promise<UnlockedTimeline | null> {
-  if (isSupabaseServerConfigured()) {
-    return getSupabaseTimelineForPerson(personId);
-  }
-
-  const person = people.find((item) => item.id === personId);
-
-  if (!person) {
-    return null;
-  }
-
-  const items = notes
-    .filter((note) => note.personId === personId)
-    .map((note) => {
-      const event = events.find((candidate) => candidate.id === note.eventId);
-      if (!event) {
-        return null;
-      }
-
-      return { note, event };
-    })
-    .filter((item): item is { note: Note; event: Event } => item !== null);
-
-  return {
-    person,
-    items: sortNotesForTimeline(items),
-  };
+  return getSupabaseTimelineForPerson(personId);
 }
 
 export async function getStudioSnapshot(): Promise<StudioSnapshot> {
-  if (isSupabaseServerConfigured()) {
-    return getSupabaseSnapshot();
-  }
-
-  return snapshot();
+  return getSupabaseSnapshot();
 }
 
 export async function createPerson(input: { displayName: string; aliases: string[] }) {
-  if (isSupabaseServerConfigured()) {
-    return createSupabasePerson(input);
-  }
-
-  const displayName = input.displayName.trim();
-  const aliases = input.aliases.map((alias) => alias.trim()).filter(Boolean);
-
-  if (!displayName) {
-    throw new Error("Name is required.");
-  }
-
-  const codeDisplay = generateFriendlyCode(people.map((person) => person.codeDisplay));
-  const person: Person = {
-    id: `person-${crypto.randomUUID()}`,
-    displayName,
-    aliases,
-    codeDisplay,
-    codeHash: normalizeCode(codeDisplay),
-    createdAt: new Date().toISOString(),
-  };
-
-  people.push(person);
-  return person;
+  return createSupabasePerson(input);
 }
 
 export async function createEvent(input: {
@@ -131,24 +68,7 @@ export async function createEvent(input: {
   theme: ThemePreset;
   defaultVisibleFrom: string | null;
 }) {
-  if (isSupabaseServerConfigured()) {
-    return createSupabaseEvent(input);
-  }
-
-  const event: Event = {
-    id: `event-${crypto.randomUUID()}`,
-    name: input.name.trim(),
-    slug: slugify(`${input.name}-${input.year}`),
-    date: input.date,
-    year: input.year,
-    dateLabel: input.dateLabel.trim(),
-    theme: input.theme,
-    defaultVisibleFrom: input.defaultVisibleFrom,
-    createdAt: new Date().toISOString(),
-  };
-
-  events.push(event);
-  return event;
+  return createSupabaseEvent(input);
 }
 
 export async function upsertNote(input: {
@@ -159,64 +79,19 @@ export async function upsertNote(input: {
   verseText: string;
   verseRef: string;
 }) {
-  if (isSupabaseServerConfigured()) {
-    return upsertSupabaseNote(input);
-  }
-
-  const existing = input.id ? notes.find((note) => note.id === input.id) : null;
-  const now = new Date().toISOString();
-
-  if (existing) {
-    existing.eventId = input.eventId;
-    existing.message = input.message;
-    existing.verseText = input.verseText;
-    existing.verseRef = input.verseRef;
-    existing.updatedAt = now;
-    return existing;
-  }
-
-  const note: Note = {
-    id: `note-${crypto.randomUUID()}`,
-    personId: input.personId,
-    eventId: input.eventId,
-    message: input.message,
-    verseText: input.verseText,
-    verseRef: input.verseRef,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  notes.push(note);
-  return note;
+  return upsertSupabaseNote(input);
 }
 
 export async function deletePerson(personId: string) {
-  if (isSupabaseServerConfigured()) {
-    await deleteSupabaseRow("people", personId);
-    return;
-  }
-
-  removeById(people, personId);
-  removeWhere(notes, (note) => note.personId === personId);
+  await deleteSupabaseRow("people", personId);
 }
 
 export async function deleteEvent(eventId: string) {
-  if (isSupabaseServerConfigured()) {
-    await deleteSupabaseRow("events", eventId);
-    return;
-  }
-
-  removeById(events, eventId);
-  removeWhere(notes, (note) => note.eventId === eventId);
+  await deleteSupabaseRow("events", eventId);
 }
 
 export async function deleteNote(noteId: string) {
-  if (isSupabaseServerConfigured()) {
-    await deleteSupabaseRow("notes", noteId);
-    return;
-  }
-
-  removeById(notes, noteId);
+  await deleteSupabaseRow("notes", noteId);
 }
 
 export function mapPersonRow(row: PersonRow): Person {
@@ -470,22 +345,6 @@ async function deleteSupabaseRow(table: "people" | "events" | "notes", id: strin
 function assertSupabaseResult<T>(result: SupabaseResult<T>) {
   if (result.error) {
     throw new Error(result.error.message);
-  }
-}
-
-function removeById<T extends { id: string }>(items: T[], id: string) {
-  const index = items.findIndex((item) => item.id === id);
-
-  if (index !== -1) {
-    items.splice(index, 1);
-  }
-}
-
-function removeWhere<T>(items: T[], predicate: (item: T) => boolean) {
-  for (let index = items.length - 1; index >= 0; index -= 1) {
-    if (predicate(items[index])) {
-      items.splice(index, 1);
-    }
   }
 }
 
