@@ -17,6 +17,8 @@ const neutralFooterTheme = {
   soft: "rgba(237, 241, 238, 0.58)",
   text: "rgba(237, 241, 238, 0.9)",
 };
+const footerEasterEggWindowMs = 2_200;
+const footerEasterEggTapCount = 4;
 
 const starThemes: Record<
   ThemePreset,
@@ -61,9 +63,14 @@ function rgbCss([red, green, blue]: readonly [number, number, number], alpha: nu
 
 export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
   const footerRef = useRef<HTMLElement | null>(null);
+  const footerTapTimesRef = useRef<number[]>([]);
+  const footerGlintTimerRef = useRef<number | null>(null);
+  const footerEggTimerRef = useRef<number | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [activeTheme, setActiveTheme] = useState<ThemePreset>(timeline.items[0]?.event.theme ?? "teal");
   const [footerStarsActive, setFooterStarsActive] = useState(false);
+  const [footerGlint, setFooterGlint] = useState<{ id: number; left: number; top: number } | null>(null);
+  const [footerEggVisible, setFooterEggVisible] = useState(false);
   const [starTheme, setStarTheme] = useState(() => ({
     glow: rgbCss(starThemes[timeline.items[0]?.event.theme ?? "teal"].glow, 0.14),
     text: rgbCss(starThemes[timeline.items[0]?.event.theme ?? "teal"].text, 0.88),
@@ -245,6 +252,48 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (footerGlintTimerRef.current) {
+        window.clearTimeout(footerGlintTimerRef.current);
+      }
+
+      if (footerEggTimerRef.current) {
+        window.clearTimeout(footerEggTimerRef.current);
+      }
+    };
+  }, []);
+
+  const triggerFooterEasterEgg = () => {
+    const timestamp = Date.now();
+    const recentTaps = [...footerTapTimesRef.current.filter((tap) => timestamp - tap < footerEasterEggWindowMs), timestamp];
+    footerTapTimesRef.current = recentTaps;
+
+    if (footerGlintTimerRef.current) {
+      window.clearTimeout(footerGlintTimerRef.current);
+    }
+
+    setFooterGlint({
+      id: timestamp,
+      left: 8 + Math.round(Math.random() * 84),
+      top: 8 + Math.round(Math.random() * 74),
+    });
+    footerGlintTimerRef.current = window.setTimeout(() => setFooterGlint(null), 820);
+
+    if (recentTaps.length < footerEasterEggTapCount) {
+      return;
+    }
+
+    footerTapTimesRef.current = [];
+    setFooterEggVisible(true);
+
+    if (footerEggTimerRef.current) {
+      window.clearTimeout(footerEggTimerRef.current);
+    }
+
+    footerEggTimerRef.current = window.setTimeout(() => setFooterEggVisible(false), 3_200);
+  };
+
   const scrollToTimelineIndex = (timelineIndex: number) => {
     const target = document.querySelector<HTMLElement>(`[data-timeline-index="${timelineIndex}"]`);
 
@@ -374,34 +423,69 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
 
         <footer
           ref={footerRef}
-          className="timeline-reveal flex min-h-screen flex-col items-center justify-center px-6 py-16 text-center"
+          className="timeline-reveal relative flex min-h-screen flex-col items-center justify-center px-6 py-16 text-center"
         >
           <div className="timeline-stagger mb-8 h-px w-24 bg-[#edf1ee]/12" />
-          <p
-            className="timeline-stagger font-playfair max-w-xs text-[30px] font-bold italic leading-[1.12] text-[#edf1ee]/88"
+          <button
+            type="button"
+            onClick={triggerFooterEasterEgg}
+            className="timeline-stagger max-w-xs cursor-default appearance-none border-0 bg-transparent p-0 text-center outline-none"
             style={{ "--reveal-delay": "90ms" } as CSSProperties}
           >
-            Let&apos;s stay connected.
-          </p>
+            <span className="font-playfair block text-[30px] font-bold italic leading-[1.12] text-[#edf1ee]/88 transition hover:text-[#edf1ee] focus-visible:text-[#edf1ee]">
+              Let&apos;s stay connected.
+            </span>
+          </button>
           <div
-            className="timeline-stagger mt-8 flex flex-col items-center gap-3"
+            className="timeline-stagger relative mt-8 flex flex-col items-center gap-3"
             style={{ "--reveal-delay": "180ms" } as CSSProperties}
           >
             <a
               href="https://instagram.com/jeshuawoon"
               target="_blank"
               rel="noreferrer"
+              aria-label="Instagram, @jeshuawoon"
               className="text-[16px] tracking-[0.03em] text-[#edf1ee]/48 transition hover:text-[#edf1ee]/82"
             >
               @jeshuawoon
             </a>
             <span className="h-[5px] w-[5px] rounded-full bg-[#edf1ee]/20" />
-            <p className="font-crimson text-[17px] italic text-[#edf1ee]/26">
+            <button
+              type="button"
+              onClick={triggerFooterEasterEgg}
+              className="font-crimson cursor-default border-0 bg-transparent p-0 text-[17px] italic text-[#edf1ee]/26 outline-none transition hover:text-[#edf1ee]/42 focus-visible:text-[#edf1ee]/42"
+            >
               see you around
-            </p>
+            </button>
           </div>
         </footer>
       </section>
+      {footerGlint && (
+        <span
+          key={footerGlint.id}
+          aria-hidden="true"
+          className="footer-secret-glint pointer-events-none fixed z-50 h-[5px] w-[5px]"
+          style={
+            {
+              left: `${footerGlint.left}%`,
+              top: `${footerGlint.top}%`,
+            } as CSSProperties
+          }
+        />
+      )}
+      {footerEggVisible && (
+        <div className="footer-secret-egg pointer-events-none fixed left-[calc(50%+56px)] top-[calc(50%+128px)] z-50 w-[112px] -translate-x-1/2 overflow-hidden rounded-[12px] opacity-0">
+          <iframe
+            title="Secret dancing cat"
+            src="https://tenor.com/embed/5034219186050115128"
+            className="block aspect-square w-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            sandbox="allow-scripts allow-same-origin"
+            allowFullScreen
+          />
+        </div>
+      )}
     </main>
   );
 }

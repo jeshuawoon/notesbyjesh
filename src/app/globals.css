@@ -136,6 +136,41 @@ select {
   }
 }
 
+@keyframes footer-secret-glint {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.35);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+}
+
+@keyframes footer-secret-egg {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 8px, 0) scale(0.76) rotate(-4deg);
+  }
+
+  16%,
+  78% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, 10px, 0) scale(0.82) rotate(3deg);
+  }
+}
+
 .timeline-reveal {
   opacity: 0;
   filter: blur(4px);
@@ -187,6 +222,19 @@ select {
     opacity 900ms ease;
 }
 
+.footer-secret-glint {
+  animation: footer-secret-glint 820ms ease-out both;
+  background: rgba(237, 241, 238, 0.86);
+  border-radius: 999px;
+  box-shadow:
+    0 0 8px rgba(237, 241, 238, 0.9),
+    0 0 18px rgba(237, 241, 238, 0.42);
+}
+
+.footer-secret-egg {
+  animation: footer-secret-egg 3.2s ease both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -206,6 +254,12 @@ select {
 
   .timeline-star {
     animation: none;
+  }
+
+  .footer-secret-glint,
+  .footer-secret-egg {
+    animation: none;
+    opacity: 1;
   }
 }
 
