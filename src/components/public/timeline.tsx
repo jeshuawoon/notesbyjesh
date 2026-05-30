@@ -433,7 +433,7 @@ export function Timeline({ timeline }: { timeline: UnlockedTimeline }) {
             style={{ "--reveal-delay": "90ms" } as CSSProperties}
           >
             <span className="font-playfair block text-[30px] font-bold italic leading-[1.12] text-[#edf1ee]/88 transition hover:text-[#edf1ee] focus-visible:text-[#edf1ee]">
-              Let&apos;s stay connected.
+              from Jeshua
             </span>
           </button>
           <div

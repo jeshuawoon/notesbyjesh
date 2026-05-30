@@ -79,6 +79,18 @@ export async function createEvent(input: {
   return createSupabaseEvent(input);
 }
 
+export async function updateEvent(input: {
+  eventId: string;
+  name: string;
+  date: string;
+  year: number;
+  dateLabel: string;
+  theme: ThemePreset;
+  defaultVisibleFrom: string | null;
+}) {
+  return updateSupabaseEvent(input);
+}
+
 export async function upsertNote(input: {
   id?: string;
   personId: string;
@@ -318,6 +330,39 @@ async function createSupabaseEvent(input: {
   }
 
   return mapEventRow(insertResult.data);
+}
+
+async function updateSupabaseEvent(input: {
+  eventId: string;
+  name: string;
+  date: string;
+  year: number;
+  dateLabel: string;
+  theme: ThemePreset;
+  defaultVisibleFrom: string | null;
+}) {
+  const client = getSupabaseServerClient();
+  const updateResult = (await client
+    .from("events")
+    .update({
+      name: input.name.trim(),
+      event_date: input.date,
+      year: input.year,
+      date_label: input.dateLabel.trim(),
+      theme: input.theme,
+      default_visible_from: input.defaultVisibleFrom,
+    })
+    .eq("id", input.eventId)
+    .select("*")
+    .single()) as SupabaseResult<EventRow>;
+
+  assertSupabaseResult(updateResult);
+
+  if (!updateResult.data) {
+    throw new Error("Supabase did not return the updated event.");
+  }
+
+  return mapEventRow(updateResult.data);
 }
 
 async function upsertSupabaseNote(input: {

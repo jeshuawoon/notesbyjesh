@@ -1,7 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createEvent, createPerson, deleteEvent, deleteNote, deletePerson, upsertNote } from "@/lib/repository";
+import {
+  createEvent,
+  createPerson,
+  deleteEvent,
+  deleteNote,
+  deletePerson,
+  updateEvent,
+  upsertNote,
+} from "@/lib/repository";
 import { assertStudioRequestAuthorized } from "@/lib/studio-request-auth";
 import type { ThemePreset } from "@/lib/types";
 import { suggestMotivationalVerse } from "@/lib/verse-suggestion";
@@ -23,6 +31,21 @@ export async function createEventAction(input: {
 }) {
   await assertStudioRequestAuthorized();
   const event = await createEvent(input);
+  revalidatePath("/studio");
+  return event;
+}
+
+export async function updateEventAction(input: {
+  eventId: string;
+  name: string;
+  date: string;
+  year: number;
+  dateLabel: string;
+  theme: ThemePreset;
+  defaultVisibleFrom: string | null;
+}) {
+  await assertStudioRequestAuthorized();
+  const event = await updateEvent(input);
   revalidatePath("/studio");
   return event;
 }
